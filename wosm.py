@@ -2,12 +2,6 @@ import sys, time
 from telnetlib import Telnet
 __author__ = 'alex'
 
-# all_lines is a dict containing all info about each line
-# e.g.:
-#   all_lines['px']['max'] gets max value of px
-#   all_lines['px']'unit'] gets units of 'px'
-
-
 class Telnet_MCU():
 
     is_connected = False
@@ -19,7 +13,9 @@ class Telnet_MCU():
         self.wos = Telnet()
         try:
             self.wos.open(host,port,timeout=mytimeout)
-            print(self.wos.read_until("Postfix\r\n".encode()))
+            self.wos.read_until("password:".encode())
+            self.wos.write("wosm\r\n".encode())
+            clearBuffer = self.wos.read_until("W>".encode())
             self.is_connected = True
         except:
             print("Connection error:", sys.exc_info()[0])
@@ -30,7 +26,7 @@ class Telnet_MCU():
         if self.is_connected:
             cmd+="\r\n"
             self.wos.write(cmd.encode())
-            reply = self.wos.read_until("\r\n".encode()).rstrip().decode()
+            reply = self.wos.read_until("W>".encode()).decode().replace("W>","").splitlines()[0]
         else:
             reply = "Not connected."
         return reply
@@ -40,7 +36,7 @@ class Telnet_MCU():
         # in µs.
         start = time.perf_counter()
         for i in range(0,10):
-            result = self.cmd("foob")
+            result = self.cmd("delta")
         end = time.perf_counter()
         return round(((end-start)/10)*1e6,2)
 
@@ -75,12 +71,12 @@ class Telnet_MCU():
         return range
 
     def getMinMax(self, line):
-        dac_min = int(self.cmd("dac_min %s") % line)
-        dac_max = int(self.cmd("dac_max %s") % line)
+        dac_min = int(self.cmd("dac_min %s" % line))
+        dac_max = int(self.cmd("dac_max %s" % line))
         return (dac_min, dac_max)
 
     def getLineVal(self, line):
-        line_val = int(self.cmd("dac_val %s") % line)
+        line_val = int(self.cmd("dac_val %s" % line))
         return line_val
 
     def getRef(self, line):
